@@ -1,0 +1,23 @@
+'use client';
+import { useMemo, useState } from 'react';
+
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const number = (value: unknown) => typeof value === 'number' ? value : Number(String(value ?? '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+const pick = (row: any, ...keys: string[]) => keys.map(key => row[key]).find(value => value !== undefined && value !== null && value !== '');
+
+export default function TurmasGanhas({ dados, email, sair }: { dados: any; email: string; sair: () => Promise<void> }) {
+  const [busca, setBusca] = useState('');
+  const turmas = useMemo(() => (dados.turmasGanhas || dados.turmas_ganhas || dados['TURMAS GANHAS'] || []).map((row: any) => {
+    const faturamento = number(pick(row, 'faturamento', 'FATURAMENTO', 'receitaBruta', 'receita_bruta'));
+    const fee = number(pick(row, 'fee', 'FEE'));
+    const beneficio = number(pick(row, 'beneficio', 'benefícios', 'BENEFÍCIO', 'BENEFICIOS'));
+    const custo = number(pick(row, 'custoComercial', 'custo_comercial', 'CUSTO COMERCIAL'));
+    return { job: String(pick(row, 'job', 'JOB') ?? '—'), turma: String(pick(row, 'turma', 'TURMA') ?? 'Sem identificação'), ganhou: pick(row, 'ganhou', 'GANHOU'), faturamento, fee, beneficio, custo, feeLiquido: fee - beneficio - custo };
+  }), [dados]);
+  const filtradas = turmas.filter((t: any) => `${t.job} ${t.turma}`.toLowerCase().includes(busca.toLowerCase()));
+  const total = (campo: 'faturamento' | 'fee' | 'beneficio' | 'custo' | 'feeLiquido') => filtradas.reduce((s: number, t: any) => s + t[campo], 0);
+  const fee = total('fee'), liquido = total('feeLiquido'), faturamento = total('faturamento');
+  const percentual = (valor: number, base: number) => base ? `${(valor / base * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—';
+  return <main><header><div><b>TOY FORMATURAS</b><em>CARTEIRA COMERCIAL</em><h1>Turmas ganhas</h1><p>Faturamento, fee, investimento comercial e rentabilidade prevista.</p></div><aside><a href="/" style={{ color: '#fff' }}>Custos comerciais</a>{email}<form action={sair}><button>Sair</button></form></aside></header><section className="toolbar"><label>Buscar turma ou job<input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Ex.: EINSTEIN ou 27500377" /></label><span>{filtradas.length} turmas na visão</span><small>Atualizado: {dados.atualizadoEm}</small></section>{turmas.length === 0 ? <section className="panel"><h2>Base de turmas ganhas aguardando integração</h2><p>Esta visão espera a coleção <code>turmasGanhas</code> no retorno da base, com JOB, TURMA, FATURAMENTO, FEE, BENEFÍCIO, CUSTO COMERCIAL e GANHOU.</p></section> : <><section className="cards"><Card t="FATURAMENTO PROJETADO" v={brl.format(faturamento)} d="Arrecadação total dos projetos" hot /><Card t="FEE CONTRATADO" v={brl.format(fee)} d={`${percentual(fee, faturamento)} do faturamento`} /><Card t="INVESTIMENTO COMERCIAL" v={brl.format(total('beneficio') + total('custo'))} d={`${percentual(total('beneficio') + total('custo'), fee)} do fee`} /><Card t="FEE LÍQUIDO PROJETADO" v={brl.format(liquido)} d={`${percentual(liquido, fee)} preservado`} /></section><section className="cards extra"><Card t="BENEFÍCIOS VENDIDOS" v={brl.format(total('beneficio'))} d={`${percentual(total('beneficio'), fee)} do fee`} /><Card t="CUSTO COMERCIAL" v={brl.format(total('custo'))} d={`${percentual(total('custo'), fee)} do fee`} /><Card t="MARGEM SOBRE FATURAMENTO" v={percentual(liquido, faturamento)} d="Fee líquido / faturamento" /><Card t="TURMAS GANHAS" v={String(filtradas.length)} d="Carteira filtrada" /></section><section className="panel"><h2>Carteira e rentabilidade por turma</h2><p>Fee líquido = fee – benefícios – custo comercial. O cluster foi removido da análise.</p><div style={{ overflow: 'auto' }}><table><thead><tr><th>Job</th><th>Turma</th><th>Ganhou em</th><th>Faturamento</th><th>Fee</th><th>Benefícios</th><th>Custo comercial</th><th>Fee líquido</th><th>Margem fee</th></tr></thead><tbody>{filtradas.sort((a: any, b: any) => b.feeLiquido - a.feeLiquido).map((t: any) => <tr key={`${t.job}-${t.turma}`}><td>{t.job}</td><td>{t.turma}</td><td>{t.ganhou ? String(t.ganhou) : '—'}</td><td>{brl.format(t.faturamento)}</td><td>{brl.format(t.fee)}</td><td>{brl.format(t.beneficio)}</td><td>{brl.format(t.custo)}</td><td><b>{brl.format(t.feeLiquido)}</b></td><td>{percentual(t.feeLiquido, t.fee)}</td></tr>)}</tbody></table></div></section></>}</main>;
+}
+function Card({ t, v, d, hot }: { t: string; v: string; d: string; hot?: boolean }) { return <article className={hot ? 'hot' : ''}><small>{t}</small><strong>{v}</strong><span>{d}</span></article>; }
