@@ -7,6 +7,7 @@ const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL',
 const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const numero = (valor: unknown) => typeof valor === 'number' ? valor : Number(String(valor ?? '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
 const percentual = (valor: number) => Number.isFinite(valor) ? valor.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—';
+const anoDe = (valor: unknown) => { const encontrado = String(valor ?? '').match(/20\d{2}|\d{2}(?=\D*$)/); return encontrado ? Number(encontrado[0].length === 2 ? '20' + encontrado[0] : encontrado[0]) : 0; };
 
 export default function Painel({ dados, email, sair }: { dados: any; email: string; sair: () => Promise<void> }) {
   const [periodo, setPeriodo] = useState('2026');
@@ -27,7 +28,7 @@ export default function Painel({ dados, email, sair }: { dados: any; email: stri
       estrutura: /TOY\s*FORMA/i.test(String(item.turma)),
     })).filter((item: any) => item.valor > 0).sort((a: any, b: any) => b.valor - a.valor);
     const anoSelecionado = periodo === 'ambos' ? null : Number(periodo);
-    const custoAquisicao = (dados.turmasGanhas || []).filter((item: any) => !anoSelecionado || String(item.ganhou || '').includes(String(anoSelecionado))).reduce((soma: number, item: any) => soma + numero(item.custoComercial), 0);
+    const custoAquisicao = (dados.turmasGanhas || []).filter((item: any) => !anoSelecionado || anoDe(item.ganhou ?? item.GANHOU) === anoSelecionado).reduce((soma: number, item: any) => soma + numero(item.custoComercial ?? item['CUSTO COMERCIAL']), 0);
     const eventos = (dados.eventosComerciais || []).map((item: any) => ({ ...item, valor: numero(item.valor), quantidade: numero(item.quantidade) }));
     return { a25, a26, realizado25, realizado26, ultimoMesRealizado, mesmoPeriodo25, verba, realizado, turmas, custoAquisicao, eventos, projecao: realizado26 / mesesRealizados * 12 };
   }, [dados, periodo]);
