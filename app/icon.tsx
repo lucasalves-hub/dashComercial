@@ -14,18 +14,19 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'hidden',
-          background: 'linear-gradient(135deg, #26102f 0%, #7e188d 100%)'
+          background: '#ffffff'
         }}
       >
         <img
-          alt=""
-          src={new URL('../public/toy-logo-chroma.png', import.meta.url).toString()}
+          alt="Toy Formaturas"
+          src={new URL(
+            '../public/toy-app-icon.png',
+            import.meta.url
+          ).toString()}
           style={{
-            width: 1670,
-            height: 405,
-            objectFit: 'contain',
-            transform: 'translateX(0)'
+            width: 430,
+            height: 470,
+            objectFit: 'contain'
           }}
         />
       </div>
