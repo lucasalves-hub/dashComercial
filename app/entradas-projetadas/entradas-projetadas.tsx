@@ -113,6 +113,8 @@ export default function EntradasProjetadas({
           atual="entradas"
           email={email}
           sair={sair}
+          referencia="Projeção ativa de entradas"
+          atualizadoEm={dados.atualizadoEm}
         />
 
         <section className="panel">
@@ -134,6 +136,8 @@ export default function EntradasProjetadas({
         atual="entradas"
         email={email}
         sair={sair}
+        referencia={`Competência inicial ${rotuloMes(visao.mensal[0]?.competencia)}`}
+        atualizadoEm={projecao.atualizadoEm || dados.atualizadoEm}
       />
 
       <section className="toolbar">
