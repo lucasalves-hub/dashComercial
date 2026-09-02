@@ -83,12 +83,13 @@ type CardProps = {
   valor: string;
   descricao: string;
   principal?: boolean;
+  ajuda?: string;
 };
 
-function Card({ titulo, valor, descricao, principal }: CardProps) {
+function Card({ titulo, valor, descricao, principal, ajuda }: CardProps) {
   return (
     <article className={principal ? `${styles.card} ${styles.principal}` : styles.card}>
-      <small>{titulo}</small>
+      <small>{titulo}{ajuda && <span className={styles.info} title={ajuda} aria-label={ajuda}>ⓘ</span>}</small>
       <strong>{valor}</strong>
       <span>{descricao}</span>
     </article>
@@ -129,6 +130,7 @@ export default function ResumoExecutivo({
       beneficio,
       custo,
       base,
+      comissionamento: base * 0.12,
       margemFinal: base * 0.88,
       margemPct: fee ? base * 0.88 / fee : 0,
       temContrato: Boolean(registro.temContrato || contrato.status === 'ASSINADO'),
@@ -205,7 +207,7 @@ export default function ResumoExecutivo({
 
       <section className={styles.cardsPrincipais}>
         <Card titulo="FEE CONTRATADO" valor={compacto.format(fee)} descricao={meta ? `${percentual(fee, meta)} da meta anual` : 'Meta não definida'} principal />
-        <Card titulo="MARGEM FINAL" valor={compacto.format(margemFinal)} descricao={`${percentual(margemFinal, fee)} do fee contratado`} principal />
+        <Card titulo="MARGEM FINAL" valor={compacto.format(margemFinal)} descricao={`${percentual(margemFinal, fee)} do fee contratado`} principal ajuda="Fee menos custo de aquisição, benefícios e comissionamento total de 12% da base comissionável: 10% do time comercial e 2% da liderança comercial." />
       </section>
 
       <section className={styles.cardsSecundarios}>
@@ -227,8 +229,8 @@ export default function ResumoExecutivo({
                   <span className={styles.nomeTurma} title={turma.turma}>{turma.turma}</span>
                   <i style={{ width: `${Math.max(4, Math.max(turma.margemFinal, 0) / maximo * 100)}%` }} />
                   <b>{compacto.format(turma.margemFinal)}</b>
-                  <small>{percentual(turma.margemFinal, margemFinal)} da margem</small>
-                  <em className={faixa.classe}>{percentual(turma.margemFinal, turma.fee)} · {faixa.texto}</em>
+                  <small title="Participação da margem final desta turma no total de margem das turmas selecionadas.">{percentual(turma.margemFinal, margemFinal)} da margem <span className={styles.info}>ⓘ</span></small>
+                  <em className={faixa.classe} title="Margem final dividida pelo fee contratado da própria turma. Faixas: 70% ou mais = saudável; de 50% a 69,9% = atenção; abaixo de 50% = crítica.">{percentual(turma.margemFinal, turma.fee)} · {faixa.texto} <span className={styles.info}>ⓘ</span></em>
                 </div>
               );
             })}
@@ -277,7 +279,7 @@ export default function ResumoExecutivo({
           <Etapa nome="Custo de aquisição" valor={-custos} percentualValor={fee ? -custos / fee * 100 : 0} />
           <Etapa nome="Benefícios" valor={-beneficios} percentualValor={fee ? -beneficios / fee * 100 : 0} />
           <Etapa nome="Base comissionável" valor={base} percentualValor={fee ? base / fee * 100 : 0} destaque />
-          <Etapa nome="Comissionamento" valor={-base * 0.12} percentualValor={fee ? -base * 0.12 / fee * 100 : 0} />
+          <Etapa nome="Comissionamento total" valor={-base * 0.12} percentualValor={fee ? -base * 0.12 / fee * 100 : 0} descricao="12% da base comissionável: 10% destinado ao time comercial e 2% à liderança comercial." />
           <Etapa nome="Margem final" valor={margemFinal} percentualValor={fee ? margemFinal / fee * 100 : 0} destaque />
         </div>
       </section>
@@ -285,10 +287,10 @@ export default function ResumoExecutivo({
   );
 }
 
-function Etapa({ nome, valor, percentualValor, destaque }: { nome: string; valor: number; percentualValor: number; destaque?: boolean }) {
+function Etapa({ nome, valor, percentualValor, destaque, descricao }: { nome: string; valor: number; percentualValor: number; destaque?: boolean; descricao?: string }) {
   return (
     <div className={destaque ? `${styles.etapa} ${styles.etapaDestaque}` : styles.etapa}>
-      <small>{nome}</small>
+      <small>{nome}{descricao && <span className={styles.info} title={descricao} aria-label={descricao}>ⓘ</span>}</small>
       <b>{brl.format(valor)}</b>
       <span>{percentualValor >= 0 ? '' : '− '}{Math.abs(percentualValor).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fee</span>
     </div>
