@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import "./globals.css";
+import "./foundation.css";
 
 export const metadata: Metadata = {
   applicationName: 'Portal Comercial',
@@ -8,11 +9,7 @@ export const metadata: Metadata = {
     template: '%s | Portal Comercial'
   },
   description: 'Visão comercial e financeira auditável da Toy Formaturas.',
-  manifest: '/manifest.webmanifest',
-  icons: {
-    icon: [{ url: '/icon', type: 'image/png', sizes: '512x512' }],
-    apple: [{ url: '/icon', type: 'image/png', sizes: '512x512' }]
-  }
+  manifest: '/manifest.webmanifest'
 };
 
 export const viewport: Viewport = {
