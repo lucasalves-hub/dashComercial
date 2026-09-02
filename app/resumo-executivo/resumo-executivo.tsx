@@ -2,40 +2,295 @@
 
 import { useMemo, useState } from 'react';
 import PortalHeader from '../portal-header';
+import styles from './resumo-executivo.module.css';
 
-const compacto = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0, notation: 'compact', compactDisplay: 'short' });
-const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const numero = (valor: unknown) => typeof valor === 'number' ? valor : Number(String(valor ?? '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
-const pegar = (registro: any, ...chaves: string[]) => chaves.map(chave => registro[chave]).find(valor => valor !== undefined && valor !== null && valor !== '');
-const anoDe = (valor: unknown) => { const encontrado = String(valor ?? '').match(/20\d{2}|\d{2}(?=\D*$)/); return encontrado ? Number(encontrado[0].length === 2 ? '20' + encontrado[0] : encontrado[0]) : 0; };
-const percentual = (valor: number, base: number) => base ? (valor / base * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—';
+const brl = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  maximumFractionDigits: 0,
+});
 
-export default function ResumoExecutivo({ dados, email, sair }: { dados: any; email: string; sair: () => Promise<void> }) {
+const compacto = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  maximumFractionDigits: 0,
+  notation: 'compact',
+  compactDisplay: 'short',
+});
+
+function numero(valor: unknown) {
+  if (typeof valor === 'number') return valor;
+  const texto = String(valor ?? '').replace('R$', '').trim();
+  if (!texto) return 0;
+  if (texto.includes(',') && texto.includes('.')) {
+    return Number(texto.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+  return Number(texto.replace(',', '.')) || 0;
+}
+
+function pegar(registro: any, ...chaves: string[]) {
+  return chaves
+    .map((chave) => registro[chave])
+    .find((valor) => valor !== undefined && valor !== null && valor !== '');
+}
+
+function anoDe(valor: unknown) {
+  const encontrado = String(valor ?? '').match(/20\d{2}|\d{2}(?=\D*$)/);
+  return encontrado
+    ? Number(encontrado[0].length === 2 ? `20${encontrado[0]}` : encontrado[0])
+    : 0;
+}
+
+function percentual(valor: number, base: number) {
+  return base
+    ? `${(valor / base * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+    : '—';
+}
+
+function faixaMargem(valor: number) {
+  if (valor >= 0.7) return { texto: 'Saudável', classe: styles.verde };
+  if (valor >= 0.5) return { texto: 'Atenção', classe: styles.amarelo };
+  return { texto: 'Crítica', classe: styles.vermelho };
+}
+
+function competenciaAtual(dados: any) {
+  const competencia = dados.projecaoEntradas?.mensal?.[0]?.competencia;
+  const encontrado = String(competencia || '').match(/^(\d{4})-(\d{2})$/);
+  if (!encontrado) return null;
+  return { ano: Number(encontrado[1]), mes: Number(encontrado[2]) };
+}
+
+function prazoEmMeses(inicio?: string, fim?: string) {
+  const nomes: Record<string, number> = {
+    jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5,
+    jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11,
+  };
+  const ler = (valor?: string) => {
+    const texto = String(valor || '').toLowerCase().replace('.', '');
+    const encontrado = texto.match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[/\s-]*(\d{2,4})/);
+    if (!encontrado) return null;
+    const ano = Number(encontrado[2].length === 2 ? `20${encontrado[2]}` : encontrado[2]);
+    return { ano, mes: nomes[encontrado[1]] };
+  };
+  const inicioLido = ler(inicio);
+  const fimLido = ler(fim);
+  if (!inicioLido || !fimLido) return null;
+  return Math.max(0, (fimLido.ano - inicioLido.ano) * 12 + fimLido.mes - inicioLido.mes + 1);
+}
+
+type CardProps = {
+  titulo: string;
+  valor: string;
+  descricao: string;
+  principal?: boolean;
+};
+
+function Card({ titulo, valor, descricao, principal }: CardProps) {
+  return (
+    <article className={principal ? `${styles.card} ${styles.principal}` : styles.card}>
+      <small>{titulo}</small>
+      <strong>{valor}</strong>
+      <span>{descricao}</span>
+    </article>
+  );
+}
+
+export default function ResumoExecutivo({
+  dados,
+  email,
+  sair,
+}: {
+  dados: any;
+  email: string;
+  sair: () => Promise<void>;
+}) {
   const [ano, setAno] = useState('2026');
-  const carteira = useMemo(() => (dados.turmasGanhas || []).map((registro: any) => {
+  const [empresa, setEmpresa] = useState('TODAS');
+
+  const carteira = useMemo(() => (
+    dados.turmasGanhas || []
+  ).map((registro: any) => {
     const fee = numero(pegar(registro, 'fee', 'FEE'));
     const beneficio = numero(pegar(registro, 'beneficio', 'BENEFÍCIO', 'BENEFICIOS'));
     const custo = numero(pegar(registro, 'custoComercial', 'CUSTO COMERCIAL'));
     const imposto = numero(pegar(registro, 'imposto', 'IMPOSTO'));
     const ganhou = pegar(registro, 'ganhou', 'GANHOU');
     const base = fee - beneficio - custo;
-    return { job: String(pegar(registro, 'job', 'JOB') || '—'), turma: String(pegar(registro, 'turma', 'TURMA') || 'Sem identificação'), ano: anoDe(ganhou), faturamento: numero(pegar(registro, 'faturamento', 'FATURAMENTO')), fee, imposto, beneficio, custo, base, comissaoTime: base * .10, comissaoLideranca: base * .02, margemFinal: base * .88 };
+    const contrato = registro.contrato || {};
+
+    return {
+      job: String(pegar(registro, 'job', 'JOB') || '—'),
+      turma: String(pegar(registro, 'turma', 'TURMA') || 'Sem identificação'),
+      empresa: String(pegar(registro, 'empresa', 'cluster', 'CLUSTER') || '').toUpperCase(),
+      ano: anoDe(ganhou),
+      faturamento: numero(pegar(registro, 'faturamento', 'FATURAMENTO')),
+      fee,
+      imposto,
+      beneficio,
+      custo,
+      base,
+      margemFinal: base * 0.88,
+      margemPct: fee ? base * 0.88 / fee : 0,
+      temContrato: Boolean(registro.temContrato || contrato.status === 'ASSINADO'),
+      inicioFee: contrato.inicioFee || '',
+      fimFee: contrato.fimFee || '',
+    };
   }), [dados]);
-  const linhas = carteira.filter((turma: any) => ano === 'todos' || turma.ano === Number(ano));
-  const soma = (campo: string, lista = linhas) => lista.reduce((acumulado: number, turma: any) => acumulado + turma[campo], 0);
-  const fee = soma('fee'), imposto = soma('imposto'), beneficios = soma('beneficio'), custos = soma('custo'), base = soma('base'), comissaoTime = soma('comissaoTime'), comissaoLideranca = soma('comissaoLideranca'), margemFinal = soma('margemFinal');
+
+  const linhas = carteira.filter((turma: any) => (
+    (ano === 'todos' || turma.ano === Number(ano)) &&
+    (empresa === 'TODAS' || turma.empresa === empresa)
+  ));
+
+  const soma = (campo: string, lista = linhas) => (
+    lista.reduce((acumulado: number, turma: any) => acumulado + turma[campo], 0)
+  );
+
+  const fee = soma('fee');
+  const imposto = soma('imposto');
+  const beneficios = soma('beneficio');
+  const custos = soma('custo');
+  const base = soma('base');
+  const margemFinal = soma('margemFinal');
   const meta = Number(dados.metasFee?.[Number(ano)]?.meta || 0);
   const top = [...linhas].sort((a: any, b: any) => b.margemFinal - a.margemFinal).slice(0, 5);
+  const top3 = top.slice(0, 3).reduce((total: number, turma: any) => total + turma.margemFinal, 0);
   const maximo = Math.max(1, ...top.map((turma: any) => Math.max(turma.margemFinal, 0)));
   const semFaturamento = linhas.filter((turma: any) => !turma.faturamento).length;
   const negativos = linhas.filter((turma: any) => turma.margemFinal < 0).length;
-  return <main>
-    <PortalHeader titulo="Resumo executivo" descricao="Crescimento, qualidade da carteira e principais riscos comerciais." atual="executivo" email={email} sair={sair} referencia={ano === 'todos' ? 'Carteira consolidada' : `Ano comercial ${ano}`} atualizadoEm={dados.atualizadoEm} />
-    <section className="toolbar"><label>Competência comercial<select value={ano} onChange={e => setAno(e.target.value)}><option value="todos">Todos os anos</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option></select></label><span>{linhas.length} turmas na carteira</span><small>Atualizado: {dados.atualizadoEm}</small></section>
-    <section className="cards"><Card t="FEE CONTRATADO" v={compacto.format(fee)} d={meta ? `${percentual(fee, meta)} da meta anual` : 'Meta não definida'} hot /><Card t="VALOR COBRADO DO CLIENTE" v={compacto.format(fee + imposto)} d={`Fee ${compacto.format(fee)} + imposto ${compacto.format(imposto)}`} /><Card t="CUSTO DE AQUISIÇÃO (GANHAS)" v={compacto.format(custos)} d={`${percentual(custos, fee)} do fee contratado`} /><Card t="MARGEM FINAL DA EMPRESA" v={compacto.format(margemFinal)} d={`${percentual(margemFinal, fee)} do fee; após comissão`} /></section>
-    <section className="grid"><article><h2>Top 5 contribuições de margem final</h2><p>Visão executiva; o detalhamento por turma permanece em Turmas Ganhas.</p><div style={{ display: 'grid', gap: 10 }}>{top.map((turma: any) => <div key={turma.job + turma.turma} style={{ display: 'grid', gridTemplateColumns: '170px 1fr 90px', gap: 10, alignItems: 'center' }}><span title={turma.turma}>{turma.turma.slice(0, 25)}</span><i style={{ display: 'block', height: 10, borderRadius: 99, background: turma.margemFinal < 0 ? '#c84747' : '#8d2aac', width: `${Math.max(4, Math.max(turma.margemFinal, 0) / maximo * 100)}%` }} /><b style={{ textAlign: 'right' }}>{compacto.format(turma.margemFinal)}</b></div>)}</div></article><article><h2>Qualidade e riscos</h2><dl><dt>Sem faturamento informado</dt><dd className={semFaturamento ? 'risk' : 'ok'}>{semFaturamento}</dd><dt>Margem final negativa</dt><dd className={negativos ? 'risk' : 'ok'}>{negativos}</dd><dt>Benefícios comprometidos</dt><dd>{compacto.format(beneficios)}</dd><dt>Status de contrato</dt><dd className="risk">A estruturar</dd></dl></article></section>
-    <section className="panel"><h2>Waterfall de rentabilidade comercial</h2><p>O imposto é cobrado por fora sobre o fee: ele compõe o valor ao cliente, mas não reduz a margem do projeto.</p><div className="table-wrap"><table><thead><tr><th>Fee contratado</th><th style={{ textAlign: 'right' }}>Imposto cobrado à parte</th><th style={{ textAlign: 'right' }}>Custo de aquisição</th><th style={{ textAlign: 'right' }}>Benefícios</th><th style={{ textAlign: 'right' }}>Base comissionável</th><th style={{ textAlign: 'right' }}>Time (10%)</th><th style={{ textAlign: 'right' }}>Liderança (2%)</th><th style={{ textAlign: 'right' }}>Margem final</th></tr></thead><tbody><tr><td><b>{brl.format(fee)}</b></td><td style={{ textAlign: 'right' }}>{brl.format(imposto)}</td><td style={{ textAlign: 'right' }}>{brl.format(custos)}</td><td style={{ textAlign: 'right' }}>{brl.format(beneficios)}</td><td style={{ textAlign: 'right' }}>{brl.format(base)}</td><td style={{ textAlign: 'right' }}>{brl.format(comissaoTime)}</td><td style={{ textAlign: 'right' }}>{brl.format(comissaoLideranca)}</td><td style={{ textAlign: 'right' }}><b>{brl.format(margemFinal)}</b></td></tr></tbody></table></div></section>
-  </main>;
+  const semContrato = linhas.filter((turma: any) => !turma.temContrato).length;
+  const contratos = linhas.filter((turma: any) => turma.temContrato).length;
+  const prazos = linhas.map((turma: any) => prazoEmMeses(turma.inicioFee, turma.fimFee)).filter((valor: any) => valor !== null);
+  const prazoMedio = prazos.length ? prazos.reduce((total: number, valor: number) => total + valor, 0) / prazos.length : 0;
+
+  const referencia = competenciaAtual(dados);
+  const mesesDecorridos = referencia && referencia.ano === Number(ano)
+    ? Math.max(1, referencia.mes - 1)
+    : 0;
+  const ritmoMensal = mesesDecorridos ? fee / mesesDecorridos : 0;
+  const fechamentoAnual = mesesDecorridos ? ritmoMensal * 12 : 0;
+
+  return (
+    <main>
+      <PortalHeader
+        titulo="Resumo executivo"
+        descricao="Resultado, saúde da carteira e riscos comerciais prioritários."
+        atual="executivo"
+        email={email}
+        sair={sair}
+        referencia={ano === 'todos' ? 'Carteira consolidada' : `Ano comercial ${ano}`}
+        atualizadoEm={dados.atualizadoEm}
+      />
+
+      <section className="toolbar">
+        <label>
+          Ano comercial
+          <select value={ano} onChange={(event) => setAno(event.target.value)}>
+            <option value="todos">Todos os anos</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </label>
+        <label>
+          Empresa
+          <select value={empresa} onChange={(event) => setEmpresa(event.target.value)}>
+            <option value="TODAS">Consolidado</option>
+            <option value="FORMA">FORMA</option>
+            <option value="MED">MED</option>
+          </select>
+        </label>
+        <span>{linhas.length} turmas na visão</span>
+      </section>
+
+      <section className={styles.cardsPrincipais}>
+        <Card titulo="FEE CONTRATADO" valor={compacto.format(fee)} descricao={meta ? `${percentual(fee, meta)} da meta anual` : 'Meta não definida'} principal />
+        <Card titulo="MARGEM FINAL" valor={compacto.format(margemFinal)} descricao={`${percentual(margemFinal, fee)} do fee contratado`} principal />
+      </section>
+
+      <section className={styles.cardsSecundarios}>
+        <Card titulo="VALOR COBRADO DO CLIENTE" valor={compacto.format(fee + imposto)} descricao={`Fee ${compacto.format(fee)} + imposto`} />
+        <Card titulo="CUSTO DE AQUISIÇÃO" valor={compacto.format(custos)} descricao={`${percentual(custos, fee)} do fee contratado`} />
+        <Card titulo="TICKET MÉDIO DE FEE" valor={compacto.format(linhas.length ? fee / linhas.length : 0)} descricao="Por turma na visão selecionada" />
+        <Card titulo="PRAZO MÉDIO DE FEE" valor={prazoMedio ? `${prazoMedio.toFixed(0)} meses` : '—'} descricao="Somente contratos identificados" />
+      </section>
+
+      <section className="grid">
+        <article>
+          <h2>Top 5 contribuições de margem final</h2>
+          <p>Participação na margem consolidada e qualidade individual da rentabilidade.</p>
+          <div className={styles.ranking}>
+            {top.map((turma: any) => {
+              const faixa = faixaMargem(turma.margemPct);
+              return (
+                <div className={styles.rankingLinha} key={`${turma.job}-${turma.turma}`}>
+                  <span className={styles.nomeTurma} title={turma.turma}>{turma.turma}</span>
+                  <i style={{ width: `${Math.max(4, Math.max(turma.margemFinal, 0) / maximo * 100)}%` }} />
+                  <b>{compacto.format(turma.margemFinal)}</b>
+                  <small>{percentual(turma.margemFinal, margemFinal)} da margem</small>
+                  <em className={faixa.classe}>{percentual(turma.margemFinal, turma.fee)} · {faixa.texto}</em>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+
+        <article>
+          <h2>Qualidade e riscos</h2>
+          <div className={styles.alertas}>
+            <div className={semContrato ? styles.alerta : styles.saude}>
+              <small>CONTRATOS PENDENTES</small>
+              <b>{semContrato}</b>
+              <span>{semContrato ? 'Exigem assinatura antes de compor projeção de entrada.' : 'Carteira com contratos identificados.'}</span>
+            </div>
+            <div className={top3 / Math.max(1, margemFinal) >= 0.5 ? styles.alertaAmarelo : styles.saude}>
+              <small>CONCENTRAÇÃO TOP 3</small>
+              <b>{percentual(top3, margemFinal)}</b>
+              <span>Da margem final está concentrada nas três maiores turmas.</span>
+            </div>
+          </div>
+          <dl>
+            <dt>Contratos identificados</dt><dd className="ok">{contratos}</dd>
+            <dt>Margem final negativa</dt><dd className={negativos ? 'risk' : 'ok'}>{negativos}</dd>
+            <dt>Sem faturamento informado</dt><dd className={semFaturamento ? 'risk' : 'ok'}>{semFaturamento}</dd>
+            <dt>Benefícios comprometidos</dt><dd>{compacto.format(beneficios)}</dd>
+          </dl>
+        </article>
+      </section>
+
+      {mesesDecorridos > 0 && (
+        <section className={styles.fechamento}>
+          <div>
+            <small>PROJEÇÃO DE FECHAMENTO ANUAL</small>
+            <h2>No ritmo atual, {ano} encerra em {brl.format(fechamentoAnual)} de fee.</h2>
+            <p>Ritmo observado: {brl.format(ritmoMensal)} por mês, considerando {mesesDecorridos} meses completos.</p>
+          </div>
+          {meta > 0 && <b>{percentual(fechamentoAnual, meta)} da meta anual</b>}
+        </section>
+      )}
+
+      <section className="panel">
+        <h2>Waterfall de rentabilidade comercial</h2>
+        <p>Imposto é cobrado à parte; as deduções abaixo são apresentadas como percentual do fee contratado.</p>
+        <div className={styles.waterfall}>
+          <Etapa nome="Fee contratado" valor={fee} percentualValor={100} destaque />
+          <Etapa nome="Custo de aquisição" valor={-custos} percentualValor={fee ? -custos / fee * 100 : 0} />
+          <Etapa nome="Benefícios" valor={-beneficios} percentualValor={fee ? -beneficios / fee * 100 : 0} />
+          <Etapa nome="Base comissionável" valor={base} percentualValor={fee ? base / fee * 100 : 0} destaque />
+          <Etapa nome="Comissionamento" valor={-base * 0.12} percentualValor={fee ? -base * 0.12 / fee * 100 : 0} />
+          <Etapa nome="Margem final" valor={margemFinal} percentualValor={fee ? margemFinal / fee * 100 : 0} destaque />
+        </div>
+      </section>
+    </main>
+  );
 }
 
-function Card({ t, v, d, hot }: { t: string; v: string; d: string; hot?: boolean }) { return <article className={hot ? 'hot' : ''}><small>{t}</small><strong>{v}</strong><span>{d}</span></article>; }
+function Etapa({ nome, valor, percentualValor, destaque }: { nome: string; valor: number; percentualValor: number; destaque?: boolean }) {
+  return (
+    <div className={destaque ? `${styles.etapa} ${styles.etapaDestaque}` : styles.etapa}>
+      <small>{nome}</small>
+      <b>{brl.format(valor)}</b>
+      <span>{percentualValor >= 0 ? '' : '− '}{Math.abs(percentualValor).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do fee</span>
+    </div>
+  );
+}
