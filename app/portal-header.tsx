@@ -80,6 +80,12 @@ export default function PortalHeader({
         <a className={atual === 'turmas' ? 'active' : ''} href="/turmas-ganhas">
           Turmas ganhas
         </a>
+        <a
+  className={atual === 'comissionamento' ? 'active' : ''}
+  href="/comissionamento"
+>
+  Comissionamento
+</a>
       </nav>
 
       <section className="data-reference" aria-label="Contexto dos dados exibidos">
