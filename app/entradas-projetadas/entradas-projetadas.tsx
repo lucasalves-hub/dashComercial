@@ -101,6 +101,7 @@ export default function EntradasProjetadas({
       porEmpresa,
       maximo,
       encerramentos: projecao?.encerramentosProximos || { quantidadeTurmas: 0, valorMensal: 0, turmas: [] },
+      inicios: projecao?.iniciosProximos || { quantidadeTurmas: 0, valorMensal: 0, turmas: [] },
     };
   }, [projecao]);
 
@@ -144,12 +145,20 @@ export default function EntradasProjetadas({
         <span>{projecao.fonte || 'Projeção ativa de entradas'}</span>
       </section>
 
+      {(numero(visao.encerramentos.quantidadeTurmas) > 0 || numero(visao.inicios.quantidadeTurmas) > 0) && <section className="grid" style={{ gridTemplateColumns: numero(visao.inicios.quantidadeTurmas) > 0 && numero(visao.encerramentos.quantidadeTurmas) > 0 ? '1fr 1fr' : '1fr' }}>
+      {numero(visao.inicios.quantidadeTurmas) > 0 && (
+        <article style={{ borderColor: '#bfe4d3', background: '#f4fcf7' }}>
+          <h2 style={{ color: '#087a53' }}>Entrada prevista: turmas iniciando nos próximos 60 dias</h2>
+          <p>{visao.inicios.quantidadeTurmas} turmas passam a gerar aproximadamente {brl.format(numero(visao.inicios.valorMensal))} por mês quando o Fee iniciar.</p>
+        </article>
+      )}
       {numero(visao.encerramentos.quantidadeTurmas) > 0 && (
-        <section className="panel" style={{ borderColor: '#f0c9c9', background: '#fff8f8' }}>
+        <article style={{ borderColor: '#f0c9c9', background: '#fff8f8' }}>
           <h2 style={{ color: '#a13b3b' }}>Atenção: turmas encerrando nos próximos 60 dias</h2>
           <p>{visao.encerramentos.quantidadeTurmas} turmas deixam de gerar aproximadamente {brl.format(numero(visao.encerramentos.valorMensal))} por mês após o encerramento do Fee.</p>
-        </section>
+        </article>
       )}
+      </section>}
 
       <section className="cards">
         <Card
@@ -182,7 +191,7 @@ export default function EntradasProjetadas({
         <article>
           <h2>Curva de entradas</h2>
           <p>
-            Entradas brutas projetadas: Fee mais imposto. Cinza representa FORMA e roxo representa MED.
+            Entradas brutas projetadas: Fee mais imposto. Roxo representa FORMA e verde representa MED.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, margin: '-8px 0 8px' }}>
@@ -197,8 +206,8 @@ export default function EntradasProjetadas({
                 key={item.competencia}
               >
                 <div style={{ height: 170, display: 'flex', alignItems: 'end', justifyContent: 'center', gap: 3 }}>
-                  <i style={{ height: `${(item.forma / visao.maximo) * 170}px`, background: '#b9acbe', width: 12 }} title={`FORMA: ${brl.format(item.forma)}`} />
-                  <i style={{ height: `${(item.med / visao.maximo) * 170}px`, background: 'linear-gradient(#c65ae0,#7a249c)', width: 12 }} title={`MED: ${brl.format(item.med)}`} />
+                  <i style={{ height: `${(item.forma / visao.maximo) * 170}px`, background: 'linear-gradient(#c65ae0,#7a249c)', width: 12 }} title={`FORMA: ${brl.format(item.forma)}`} />
+                  <i style={{ height: `${(item.med / visao.maximo) * 170}px`, background: 'linear-gradient(#35b981,#087a53)', width: 12 }} title={`MED: ${brl.format(item.med)}`} />
                 </div>
                 <small>{rotuloMes(item.competencia)}</small>
               </div>
@@ -211,7 +220,7 @@ export default function EntradasProjetadas({
           {visao.porEmpresa.map((item: any) => (
             <div key={item.empresa} style={{ margin: '18px 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}><b>{item.empresa}</b><b>{brl.format(item.valor)}</b></div>
-              <div style={{ height: 12, background: '#eee7f0', borderRadius: 99, overflow: 'hidden' }}><i style={{ display: 'block', height: '100%', width: `${(item.valor / Math.max(1, visao.porEmpresa.reduce((total: number, empresa: any) => total + empresa.valor, 0))) * 100}%`, background: item.empresa === 'FORMA' ? '#b9acbe' : 'linear-gradient(90deg,#c65ae0,#7a249c)' }} /></div>
+              <div style={{ height: 12, background: '#eee7f0', borderRadius: 99, overflow: 'hidden' }}><i style={{ display: 'block', height: '100%', width: `${(item.valor / Math.max(1, visao.porEmpresa.reduce((total: number, empresa: any) => total + empresa.valor, 0))) * 100}%`, background: item.empresa === 'FORMA' ? 'linear-gradient(90deg,#c65ae0,#7a249c)' : 'linear-gradient(90deg,#35b981,#087a53)' }} /></div>
               <small>{((item.valor / Math.max(1, visao.porEmpresa.reduce((total: number, empresa: any) => total + empresa.valor, 0))) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% das entradas projetadas</small>
             </div>
           ))}
