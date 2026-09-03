@@ -2,7 +2,12 @@
 
 import Image from 'next/image';
 
-type TelaAtual = 'custos' | 'turmas' | 'executivo' | 'entradas' | 'comissionamento';
+type TelaAtual =
+  | 'custos'
+  | 'turmas'
+  | 'executivo'
+  | 'entradas'
+  | 'comissionamento';
 
 type PortalHeaderProps = {
   titulo: string;
