@@ -18,7 +18,17 @@ export default function Comissionamento({ dados, email, sair }: { dados: any; em
   const colaboradores = new Set(linhas.map((p: any) => p.colaborador)).size;
   const totalProgramado = n(api.totalProgramado);
   const porPessoa = useMemo(() => Object.values(linhas.reduce((acc: Record<string, any>, p: any) => { const k = p.colaborador || 'Não identificado'; acc[k] ||= { nome: k, previsto: 0, turmas: 0 }; acc[k].previsto += n(p.valor); acc[k].turmas += 1; return acc; }, {})).sort((a: any, b: any) => b.previsto - a.previsto), [linhas]);
-  const nomes = useMemo(() => Array.from(new Set((api.parcelas || []).map((p: any) => String(p.colaborador || '')).filter(Boolean))).sort(), [api.parcelas]);
+  const nomes = useMemo<string[]>(
+  () =>
+    Array.from(
+      new Set<string>(
+        (api.parcelas || [])
+          .map((p: any): string => String(p.colaborador || ''))
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+  [api.parcelas]
+);
   const pessoa = colaboradorSelecionado || nomes[0] || '';
   const parcelasPessoa = linhas.filter((p: any) => p.colaborador === pessoa);
   const totalPessoaAno = (api.parcelas || []).filter((p: any) => p.colaborador === pessoa).reduce((s: number, p: any) => s + n(p.valor), 0);
