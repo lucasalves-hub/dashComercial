@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import PortalHeader from '../portal-header';
+import DocumentosComissionamento from './documentos';
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const n = (v: unknown) => typeof v === 'number' ? v : Number(String(v ?? '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
@@ -27,6 +28,7 @@ export default function Comissionamento({ dados, email, sair }: { dados: any; em
   const detalhesPessoa = (api.detalhes || []).filter((p: any) => p.colaborador === pessoa);
   return <main>
     <PortalHeader titulo="Comissionamento" descricao="Parcelas previstas por colaborador e turma, conforme a base operacional do Financeiro." atual="comissionamento" email={email} sair={sair} referencia={competencia ? `Competência ${competencia}` : 'Base operacional'} atualizadoEm={api.atualizadoEm || dados.atualizadoEm} />
+    {api.mensal && <DocumentosComissionamento competenciaInicial={competencia} colaboradores={nomes} />}
     {!api.mensal && <section className="panel"><h2>Integração em preparação</h2><p>A página já está pronta. A próxima atualização da API incluirá o consolidado da planilha de comissionamento.</p></section>}
     {api.mensal && <><section className="toolbar"><label>Competência<select value={competencia} onChange={e => setCompetencia(e.target.value)}>{mensal.map((m: any) => <option key={m.competencia} value={m.competencia}>{m.competencia}</option>)}</select></label><label>Buscar colaborador, turma ou JOB<input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Ex.: Lucas, PUC ou 2750" /></label><span>{linhas.length} parcelas na visão</span></section>
     <section className="cards"><Card titulo="COMISSÃO PREVISTA" valor={brl.format(previsto)} descricao="Parcelas agendadas na competência" destaque /><Card titulo="COLABORADORES" valor={String(colaboradores)} descricao="Com parcela prevista no período" /><Card titulo="TURMAS / PARCELAS" valor={String(linhas.length)} descricao="Registros que compõem a competência" /><Card titulo="TOTAL PROGRAMADO" valor={brl.format(totalProgramado)} descricao="Todas as parcelas da base atual" /></section>
