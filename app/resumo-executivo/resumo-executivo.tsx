@@ -60,12 +60,12 @@ function competenciaAtual(dados: any) {
   return { ano: Number(encontrado[1]), mes: Number(encontrado[2]) };
 }
 
-function prazoEmMeses(inicio?: string, fim?: string) {
+function prazoEmMeses(inicio?: unknown, fim?: unknown) {
   const nomes: Record<string, number> = {
     jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5,
     jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11,
   };
-  const ler = (valor?: string) => {
+  const ler = (valor?: unknown) => {
     if (valor instanceof Date && !Number.isNaN(valor.getTime())) return { ano: valor.getFullYear(), mes: valor.getMonth() };
     const texto = String(valor || '').toLowerCase().replace('.', '');
     const iso = texto.match(/(20\d{2})[-/](\d{1,2})/);
