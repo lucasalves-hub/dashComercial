@@ -9,7 +9,7 @@ function Card({ titulo, valor, descricao, destaque }: { titulo: string; valor: s
 
 export default function Comissionamento({ dados, email, sair }: { dados: any; email: string; sair: () => Promise<void> }) {
   const api = dados.comissionamento || {};
-  const cenarios = api.cenariosComissionamento || {};
+  const cenarios = dados.cenariosComissionamento || {};
   const cenarioTotal = cenarios.total || {};
   const [competencia, setCompetencia] = useState(String(api.competenciaAtual || api.mensal?.[0]?.competencia || ''));
   const [busca, setBusca] = useState('');
