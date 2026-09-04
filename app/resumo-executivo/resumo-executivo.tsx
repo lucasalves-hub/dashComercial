@@ -13,7 +13,7 @@ const brl = new Intl.NumberFormat('pt-BR', {
 const compacto = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 1,
   notation: 'compact',
   compactDisplay: 'short',
 });
@@ -66,7 +66,10 @@ function prazoEmMeses(inicio?: string, fim?: string) {
     jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11,
   };
   const ler = (valor?: string) => {
+    if (valor instanceof Date && !Number.isNaN(valor.getTime())) return { ano: valor.getFullYear(), mes: valor.getMonth() };
     const texto = String(valor || '').toLowerCase().replace('.', '');
+    const iso = texto.match(/(20\d{2})[-/](\d{1,2})/);
+    if (iso) return { ano: Number(iso[1]), mes: Number(iso[2]) - 1 };
     const encontrado = texto.match(/(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[/\s-]*(\d{2,4})/);
     if (!encontrado) return null;
     const ano = Number(encontrado[2].length === 2 ? `20${encontrado[2]}` : encontrado[2]);
@@ -214,7 +217,7 @@ export default function ResumoExecutivo({
         <Card titulo="VALOR COBRADO DO CLIENTE" valor={compacto.format(fee + imposto)} descricao={`Fee ${compacto.format(fee)} + imposto`} />
         <Card titulo="CUSTO DE AQUISIÇÃO" valor={compacto.format(custos)} descricao={`${percentual(custos, fee)} do fee contratado`} />
         <Card titulo="TICKET MÉDIO DE FEE" valor={compacto.format(linhas.length ? fee / linhas.length : 0)} descricao="Por turma na visão selecionada" />
-        <Card titulo="PRAZO MÉDIO DE FEE" valor={prazoMedio ? `${prazoMedio.toFixed(0)} meses` : '—'} descricao="Somente contratos identificados" />
+        <Card titulo="PRAZO MÉDIO DE FEE" valor={prazoMedio ? `${prazoMedio.toFixed(0)} meses` : 'Sem período'} descricao={prazos.length ? `Média de ${prazos.length} contratos com início e fim de Fee` : `${contratos} contratos identificados sem período de Fee válido`} />
       </section>
 
       <section className="grid">
