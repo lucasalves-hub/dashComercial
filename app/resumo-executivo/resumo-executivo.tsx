@@ -214,7 +214,7 @@ export default function ResumoExecutivo({
       </section>
 
       <section className={styles.cardsSecundarios}>
-        <Card titulo="VALOR COBRADO DO CLIENTE" valor={compacto.format(fee + imposto)} descricao={`Fee ${compacto.format(fee)} + imposto`} />
+        <Card titulo="VALOR COBRADO DO CLIENTE" valor={compacto.format(fee + imposto)} descricao={`Fee ${compacto.format(fee)} + imposto ${compacto.format(imposto)}`} />
         <Card titulo="CUSTO DE AQUISIÇÃO" valor={compacto.format(custos)} descricao={`${percentual(custos, fee)} do fee contratado`} />
         <Card titulo="TICKET MÉDIO DE FEE" valor={compacto.format(linhas.length ? fee / linhas.length : 0)} descricao="Por turma na visão selecionada" />
         <Card titulo="PRAZO MÉDIO DE FEE" valor={prazoMedio ? `${prazoMedio.toFixed(0)} meses` : 'Sem período'} descricao={prazos.length ? `Média de ${prazos.length} contratos com início e fim de Fee` : `${contratos} contratos identificados sem período de Fee válido`} />
