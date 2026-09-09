@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 
-type TelaAtual = 'custos' | 'turmas' | 'executivo' | 'entradas' | 'comissionamento';
+type TelaAtual = 'custos' | 'turmas' | 'executivo' | 'entradas' | 'comissionamento' | 'pipeline';
+
 type PortalHeaderProps = {
   titulo: string;
   descricao: string;
@@ -80,12 +81,12 @@ export default function PortalHeader({
         <a className={atual === 'turmas' ? 'active' : ''} href="/turmas-ganhas">
           Turmas ganhas
         </a>
-        <a
-  className={atual === 'comissionamento' ? 'active' : ''}
-  href="/comissionamento"
->
-  Comissionamento
-</a>
+        <a className={atual === 'pipeline' ? 'active' : ''} href="/pipeline">
+          Pipeline
+        </a>
+        <a className={atual === 'comissionamento' ? 'active' : ''} href="/comissionamento">
+          Comissionamento
+        </a>
       </nav>
 
       <section className="data-reference" aria-label="Contexto dos dados exibidos">
