@@ -26,7 +26,7 @@ export default function Pipeline({ dados, email, sair }: { dados: any; email: st
     custo: numero(item.custo),
     linhasFonte: String(item.linhasFonte || ''),
   })), [api.registros]);
-  const statusDisponiveis = useMemo(() => [...new Set(registros.map((item: any) => item.status))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [registros]);
+  const statusDisponiveis = useMemo<string[]>(() => [...new Set<string>(registros.map((item: any) => String(item.status)))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [registros]);
   const filtrados = useMemo(() => registros.filter((item: any) =>
     (status === 'TODOS' || item.status === status) && `${item.pit} ${item.turma} ${item.status}`.toLocaleLowerCase('pt-BR').includes(busca.toLocaleLowerCase('pt-BR'))
   ), [registros, status, busca]);
