@@ -1,3 +1,4 @@
+import { calendarioComercial } from '../projecao-anual';
 import { auth, signOut } from '../../auth';
 import ResumoExecutivo from './resumo-executivo';
 
@@ -9,5 +10,5 @@ export default async function Page() {
   const dados = await resposta.json();
   if (!resposta.ok || dados.error) throw new Error(dados.error || 'Não foi possível ler a base auditada.');
   const session = await auth();
-  return <ResumoExecutivo dados={dados} email={session?.user?.email || ''} sair={async () => { 'use server'; await signOut({ redirectTo: '/' }); }} />;
+  return <ResumoExecutivo referencia={calendarioComercial()} dados={dados} email={session?.user?.email || ''} sair={async () => { 'use server'; await signOut({ redirectTo: '/' }); }} />;
 }

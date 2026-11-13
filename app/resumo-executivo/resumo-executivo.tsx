@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { mesesDaProjecao } from '../projecao-anual';
 import PortalHeader from '../portal-header';
 import styles from './resumo-executivo.module.css';
 
@@ -53,13 +54,6 @@ function faixaMargem(valor: number) {
   return { texto: 'Crítica', classe: styles.vermelho };
 }
 
-function competenciaAtual(dados: any) {
-  const competencia = dados.projecaoEntradas?.mensal?.[0]?.competencia;
-  const encontrado = String(competencia || '').match(/^(\d{4})-(\d{2})$/);
-  if (!encontrado) return null;
-  return { ano: Number(encontrado[1]), mes: Number(encontrado[2]) };
-}
-
 function prazoEmMeses(inicio?: unknown, fim?: unknown) {
   const nomes: Record<string, number> = {
     jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5,
@@ -101,10 +95,12 @@ function Card({ titulo, valor, descricao, principal, ajuda }: CardProps) {
 
 export default function ResumoExecutivo({
   dados,
+  referencia,
   email,
   sair,
 }: {
   dados: any;
+  referencia: { ano: number; mes: number };
   email: string;
   sair: () => Promise<void>;
 }) {
@@ -168,10 +164,7 @@ export default function ResumoExecutivo({
   const prazos = linhas.map((turma: any) => prazoEmMeses(turma.inicioFee, turma.fimFee)).filter((valor: any) => valor !== null);
   const prazoMedio = prazos.length ? prazos.reduce((total: number, valor: number) => total + valor, 0) / prazos.length : 0;
 
-  const referencia = competenciaAtual(dados);
-  const mesesDecorridos = referencia && referencia.ano === Number(ano)
-    ? Math.max(1, referencia.mes - 1)
-    : 0;
+  const mesesDecorridos = mesesDaProjecao(Number(ano), referencia);
   const ritmoMensal = mesesDecorridos ? fee / mesesDecorridos : 0;
   const fechamentoAnual = mesesDecorridos ? ritmoMensal * 12 : 0;
 
@@ -268,7 +261,7 @@ export default function ResumoExecutivo({
           <div>
             <small>PROJEÇÃO DE FECHAMENTO ANUAL</small>
             <h2>No ritmo atual, {ano} encerra em {brl.format(fechamentoAnual)} de fee.</h2>
-            <p>Ritmo observado: {brl.format(ritmoMensal)} por mês, considerando {mesesDecorridos} meses completos.</p>
+            <p>Ritmo observado: {brl.format(ritmoMensal)} por mês, considerando {mesesDecorridos} meses de calendário, incluindo meses sem fechamento{Number(ano) === referencia.ano ? " e o mês atual em andamento" : ""}.</p>
           </div>
           {meta > 0 && <b>{percentual(fechamentoAnual, meta)} da meta anual</b>}
         </section>
